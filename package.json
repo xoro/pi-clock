@@ -1,7 +1,7 @@
 {
   "name": "pi-clock",
   "version": "1.0.0",
-  "private": true,
+  "license": "BSD-2-Clause",
   "keywords": ["pi-package"],
   "pi": {
     "extensions": ["./extensions"]
