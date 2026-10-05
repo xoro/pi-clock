@@ -20,7 +20,8 @@ const DEFAULT_FORMAT = "EEE DD.MM.YYYY HH:mm:ss";
  * ~/.pi/agent/clock-status.json (plain JSON, no comments):
  * {
  *   "format": "EEE DD.MM.YYYY HH:mm:ss",
- *   "timeZone": null
+ *   "timeZone": null,
+ *   "position": "right"
  * }
  *
  * format tokens: YYYY (year) MM (month) DD (day) HH (24h hour) hh (12h hour)
@@ -30,6 +31,8 @@ const DEFAULT_FORMAT = "EEE DD.MM.YYYY HH:mm:ss";
  *
  * timeZone: IANA name, e.g. "Europe/Berlin" or "America/New_York".
  *   null, omitted, or invalid = system's local time zone.
+ *
+ * position: "right" (default) or "left" of the extension-status line.
  *
  * Missing file or malformed JSON falls back to the defaults below.
  */
@@ -66,15 +69,16 @@ function formatNow(pattern: string, timeZone: string | undefined): string {
 	return pattern.replace(/YYYY|MM|DD|HH|hh|mm|ss|EEE|a/g, (m) => tokens[m]);
 }
 
-function loadConfig(): { format: string; timeZone: string | undefined } {
+function loadConfig(): { format: string; timeZone: string | undefined; position: "left" | "right" } {
 	try {
 		const config = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
 		return {
 			format: typeof config.format === "string" ? config.format : DEFAULT_FORMAT,
 			timeZone: typeof config.timeZone === "string" ? config.timeZone : undefined,
+			position: config.position === "left" ? "left" : "right",
 		};
 	} catch {
-		return { format: DEFAULT_FORMAT, timeZone: undefined };
+		return { format: DEFAULT_FORMAT, timeZone: undefined, position: "right" };
 	}
 }
 
@@ -169,7 +173,11 @@ export default function (pi: ExtensionAPI) {
 					const clockConfig = loadConfig();
 					const clock = theme.fg("dim", formatNow(clockConfig.format, clockConfig.timeZone));
 					const gapPad = Math.max(1, width - visibleWidth(left) - (left ? 1 : 0) - visibleWidth(clock));
-					const statusLine = truncateToWidth(left + (left ? " " : "") + " ".repeat(gapPad) + clock, width);
+					const gap = " ".repeat(gapPad);
+					const statusLine =
+						clockConfig.position === "left"
+							? truncateToWidth(clock + gap + left, width)
+							: truncateToWidth(left + (left ? " " : "") + gap + clock, width);
 
 					return [pwdLine, statsLine, statusLine];
 				},
